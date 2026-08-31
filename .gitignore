@@ -1,0 +1,9 @@
+.venv/
+.cache/
+djtransgan-tmp/
+results/
+__pycache__/
+*.pyc
+code/
+demo-site/
+dg-pipeline/
