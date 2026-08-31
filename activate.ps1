@@ -15,10 +15,17 @@ $env:TMP                = "F:\djtransgan-tmp"
 $env:TEMP               = "F:\djtransgan-tmp"
 $env:TMPDIR             = "F:\djtransgan-tmp"
 
+# Local rubberband CLI (pyrubberband shells out to `rubberband`)
+$RubberbandDir = Join-Path $Root "tools\rubberband"
+if (Test-Path (Join-Path $RubberbandDir "rubberband.exe")) {
+    $env:PATH = "$RubberbandDir;$env:PATH"
+}
+
 New-Item -ItemType Directory -Force -Path $env:PIP_CACHE_DIR, $env:TORCH_HOME, $env:HF_HOME, $env:TMP | Out-Null
 
 Write-Host "DJtransGAN env active"
 Write-Host "  root: $Root"
 Write-Host "  python: $((Get-Command python).Source)"
+Write-Host "  rubberband: $((Get-Command rubberband -ErrorAction SilentlyContinue).Source)"
 Write-Host "  PIP_CACHE_DIR=$env:PIP_CACHE_DIR"
 Write-Host "  TORCH_HOME=$env:TORCH_HOME"

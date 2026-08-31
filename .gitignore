@@ -7,3 +7,9 @@ __pycache__/
 code/
 demo-site/
 dg-pipeline/
+web/node_modules/
+web/dist/
+web/*.tsbuildinfo
+tools/*.zip
+.cursor/
+debug-*.log

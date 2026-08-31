@@ -16,6 +16,12 @@ pyrubberband>=0.3.0
 nnAudio>=0.3.1
 torchlibrosa>=0.0.9
 openunmix>=1.2.0
+asteroid-filterbanks>=0.4.0
 auraloss>=0.2.0
 IPython>=7.0
 # madmom: install separately with --no-build-isolation after Cython (see README)
+
+# Mix Studio API
+fastapi>=0.110
+uvicorn[standard]>=0.27
+python-multipart>=0.0.9
