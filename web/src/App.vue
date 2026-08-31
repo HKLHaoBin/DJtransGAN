@@ -8,7 +8,11 @@
       <RouterLink to="/demo">Demo</RouterLink>
       <RouterLink to="/about">About</RouterLink>
     </nav>
-    <RouterView />
+    <RouterView v-slot="{ Component }">
+      <KeepAlive include="MixView">
+        <component :is="Component" />
+      </KeepAlive>
+    </RouterView>
   </div>
 </template>
 
