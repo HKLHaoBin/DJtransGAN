@@ -195,7 +195,7 @@ def run_mix(
     short_name: str = "short.wav",
     full_name: str = "full.wav",
     params_name: str = "params.json",
-    match_bpm: bool = True,
+    match_bpm: bool = False,
     align_cue: bool = True,
 ) -> dict:
     """

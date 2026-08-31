@@ -144,7 +144,7 @@ class JobManager:
         prev_cue: float,
         next_cue: float,
         *,
-        match_bpm: bool = True,
+        match_bpm: bool = False,
         align_cue: bool = True,
     ) -> Job:
         if len(prev_bytes) > MAX_UPLOAD_BYTES or len(next_bytes) > MAX_UPLOAD_BYTES:
@@ -219,7 +219,7 @@ class JobManager:
             float(paths["next_cue"]),
             out_dir,
             on_progress=on_progress,
-            match_bpm=bool(paths.get("match_bpm", True)),
+            match_bpm=bool(paths.get("match_bpm", False)),
             align_cue=bool(paths.get("align_cue", True)),
         )
         job.created_paths.update(result)
