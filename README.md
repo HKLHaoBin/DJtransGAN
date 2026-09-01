@@ -78,7 +78,7 @@ cd DJtransGAN
 3. **Demo** — 论文对照试听  
 4. **Settings / About**
 
-首次启动若缺少权重，会尝试下载到 `code/pretrained/`。上传优先 **wav/flac**。同一时间只跑一个 job。
+首次启动若缺少权重，会尝试下载到本地 `pretrained/`（开发态在仓库旁的数据目录；安装版在 `%LOCALAPPDATA%\DJtransGAN\pretrained`）。上传优先 **wav/flac**。同一时间只跑一个 job。
 
 > 模型输出是研究原型级过渡（单声道 + 时频 masking），不是母带级立体声混音。
 
@@ -100,3 +100,39 @@ python -m http.server 8765
 ```
 
 或打开上游在线 demo：https://chenpaulyu.github.io/djtransgan-icassp2022/
+
+## 发布 / Windows 安装包
+
+推送到 `main`、推送 `v*` tag，或在 Actions 里手动运行 **Windows Release**，会：
+
+1. 相对最新 `v*` tag 自动 **patch +1**（手动 tag 则使用该版本）
+2. 构建 Vue 前端，用 PyInstaller 打成 Windows onedir EXE（内嵌前端 + `code/` + rubberband）
+3. 用 Inno Setup 生成 `DJtransGAN-Setup-<version>.exe`
+4. 发布到 GitHub Release（另附 portable zip）
+
+安装后：
+
+| 项 | 位置 |
+| --- | --- |
+| 程序 | `Program Files\DJtransGAN` |
+| 用户数据（结果 / 权重） | `%LOCALAPPDATA%\DJtransGAN` |
+| 卸载 | Windows「应用和功能」（默认保留用户数据） |
+
+本地打包（需已 clone `code/`，并完成 `web` 生产构建）：
+
+```powershell
+cd web; npm ci; npm run build; cd ..
+pip install -r requirements-inference.txt
+pip install -r packaging/requirements-desktop.txt
+# 建议使用 CPU torch wheel
+pyinstaller packaging/DJtransGAN.spec --noconfirm
+# 安装 Inno Setup 后：
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=0.1.0 packaging\installer.iss
+```
+
+桌面入口（开发态，需先 `npm run build` 才有同域前端）：
+
+```powershell
+.\activate.ps1
+python -m server.desktop
+```

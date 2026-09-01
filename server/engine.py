@@ -12,6 +12,7 @@ import torch
 
 from server.paths import (
     CODE_DIR,
+    DATA_ROOT,
     DEFAULT_WEIGHTS,
     PRETRAINED_DIR,
     ensure_runtime_env,
@@ -43,18 +44,31 @@ def _map_preprocess_progress(on_progress: ProgressCb) -> ProgressCb:
 
 
 def ensure_pretrained(download: bool = True) -> Path:
-    """Ensure default weights exist under code/pretrained/."""
+    """Ensure default weights exist under the writable pretrained dir."""
+    import shutil
+
     ensure_runtime_env()
-    # download helpers write relative to cwd
+    weights = DEFAULT_WEIGHTS
+    if weights.is_file():
+        return weights
+
+    bundled = CODE_DIR / "pretrained" / "djtransgan_minmax.pt"
+    if bundled.is_file():
+        PRETRAINED_DIR.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(bundled, weights)
+        return weights
+
+    if not download:
+        return weights
+
+    # download helpers write ./pretrained/... relative to cwd
     cwd = Path.cwd()
     try:
-        os_chdir = __import__("os").chdir
-        os_chdir(CODE_DIR)
+        DATA_ROOT.mkdir(parents=True, exist_ok=True)
+        __import__("os").chdir(DATA_ROOT)
         from djtransgan.utils import download_pretrained
 
-        weights = DEFAULT_WEIGHTS
-        if not weights.is_file() and download:
-            download_pretrained()
+        download_pretrained()
         return weights
     finally:
         __import__("os").chdir(cwd)

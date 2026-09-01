@@ -2,6 +2,7 @@
 .cache/
 djtransgan-tmp/
 results/
+pretrained/
 __pycache__/
 *.pyc
 code/
@@ -13,3 +14,6 @@ web/*.tsbuildinfo
 tools/*.zip
 .cursor/
 debug-*.log
+dist/
+build/
+*.spec.bak

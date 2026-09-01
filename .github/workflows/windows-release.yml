@@ -1,0 +1,204 @@
+name: Windows Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Override version (X.Y.Z). Empty = patch bump from latest tag."
+        required: false
+        default: ""
+
+concurrency:
+  group: windows-release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    # softprops creates the tag via API, which can re-fire this workflow; skip bot tag pushes.
+    if: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && github.actor == 'github-actions[bot]') }}
+    runs-on: windows-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          git fetch --tags --force
+
+          function Get-LatestSemver {
+            $tags = git tag -l "v*" | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '^v\d+\.\d+\.\d+$' }
+            if (-not $tags) { return $null }
+            $parsed = foreach ($t in $tags) {
+              if ($t -match '^v(\d+)\.(\d+)\.(\d+)$') {
+                [pscustomobject]@{
+                  Tag = $t
+                  Major = [int]$Matches[1]
+                  Minor = [int]$Matches[2]
+                  Patch = [int]$Matches[3]
+                }
+              }
+            }
+            $best = $parsed | Sort-Object Major, Minor, Patch | Select-Object -Last 1
+            return $best
+          }
+
+          $createTag = $false
+          $version = $null
+
+          if ($env:EVENT_NAME -eq "push" -and $env:REF_NAME -match '^v\d+\.\d+\.\d+$') {
+            $version = $env:REF_NAME.TrimStart("v")
+            Write-Host "Using tag version: $version"
+          }
+          elseif ($env:INPUT_VERSION -and $env:INPUT_VERSION.Trim()) {
+            $version = $env:INPUT_VERSION.Trim().TrimStart("v")
+            if ($version -notmatch '^\d+\.\d+\.\d+$') {
+              throw "Invalid version override: $($env:INPUT_VERSION)"
+            }
+            Write-Host "Using workflow_dispatch override: $version"
+          }
+          else {
+            $latest = Get-LatestSemver
+            if ($null -eq $latest) {
+              $version = "0.1.0"
+              Write-Host "No tags found; starting at $version"
+            }
+            else {
+              $version = "$($latest.Major).$($latest.Minor).$($latest.Patch + 1)"
+              Write-Host "Bumped $($latest.Tag) -> v$version"
+            }
+          }
+
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Invalid version: $version"
+          }
+
+          # Fail fast if this tag already exists (except when the push event IS that tag).
+          $tagName = "v$version"
+          git rev-parse $tagName 2>$null | Out-Null
+          if ($LASTEXITCODE -eq 0 -and -not ($env:EVENT_NAME -eq "push" -and $env:REF_NAME -eq $tagName)) {
+            throw "Tag $tagName already exists"
+          }
+
+          Set-Content -Path VERSION -Value $version -NoNewline -Encoding utf8
+          $pkgPath = "web/package.json"
+          $pkgText = Get-Content $pkgPath -Raw -Encoding utf8
+          $pkgText = [regex]::Replace($pkgText, '"version"\s*:\s*"[^"]*"', "`"version`": `"$version`"")
+          Set-Content -Path $pkgPath -Value $pkgText -Encoding utf8 -NoNewline
+
+          "VERSION=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "TAG=v$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Clone model code and demo site
+        shell: pwsh
+        run: |
+          if (Test-Path code) { Remove-Item -Recurse -Force code }
+          if (Test-Path demo-site) { Remove-Item -Recurse -Force demo-site }
+          git clone --depth 1 https://github.com/HKLHaoBin/DJtransGAN-code.git code
+          git clone --depth 1 https://github.com/HKLHaoBin/DJtransGAN-demo-site.git demo-site
+          # Drop VCS metadata from bundled trees
+          Remove-Item -Recurse -Force code/.git -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force demo-site/.git -ErrorAction SilentlyContinue
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build frontend
+        working-directory: web
+        shell: pwsh
+        run: |
+          npm ci
+          npm run build
+          if (-not (Test-Path dist/index.html)) { throw "web/dist/index.html missing" }
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Python dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -r requirements-inference.txt
+          python -m pip install -r packaging/requirements-desktop.txt
+
+      - name: PyInstaller build
+        shell: pwsh
+        run: |
+          python -m PyInstaller packaging/DJtransGAN.spec --noconfirm --clean
+          $exe = "dist/DJtransGAN/DJtransGAN.exe"
+          if (-not (Test-Path $exe)) { throw "Missing $exe" }
+          Get-ChildItem dist/DJtransGAN | Select-Object -First 20 | Format-Table Name, Length
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            $iscc = Get-ChildItem "C:\Program Files*\Inno Setup*\ISCC.exe" -ErrorAction SilentlyContinue |
+              Select-Object -First 1 -ExpandProperty FullName
+          }
+          if (-not $iscc -or -not (Test-Path $iscc)) { throw "ISCC.exe not found" }
+          $src = (Resolve-Path "dist\DJtransGAN").Path
+          & $iscc "/DAppVersion=$env:APP_VERSION" "/DSourceDir=$src" "packaging\installer.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed: $LASTEXITCODE" }
+          $setup = "dist\installer\DJtransGAN-Setup-$($env:APP_VERSION).exe"
+          if (-not (Test-Path $setup)) { throw "Missing $setup" }
+          Get-Item $setup | Format-List FullName, Length
+
+      - name: Zip onedir (optional portable)
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          $zip = "dist\DJtransGAN-portable-$($env:APP_VERSION).zip"
+          Compress-Archive -Path "dist\DJtransGAN\*" -DestinationPath $zip -Force
+          Write-Host "Created $zip"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.TAG }}
+          name: DJtransGAN Mix Studio ${{ steps.version.outputs.TAG }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            dist/installer/DJtransGAN-Setup-${{ steps.version.outputs.VERSION }}.exe
+            dist/DJtransGAN-portable-${{ steps.version.outputs.VERSION }}.zip
+          body: |
+            ## Install
+            Download **DJtransGAN-Setup-${{ steps.version.outputs.VERSION }}.exe**, run it, then launch **DJtransGAN Mix Studio**.
+
+            - Install dir: `Program Files\DJtransGAN`
+            - User data (results / pretrained weights): `%LOCALAPPDATA%\DJtransGAN`
+            - Uninstall via Windows Apps & Features (user data is kept)
+
+            CPU PyTorch build. First launch may download model weights.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

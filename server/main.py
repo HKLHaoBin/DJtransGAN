@@ -10,14 +10,23 @@ from typing import Optional
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from starlette.responses import Response
 
 from server.engine import generator_status, load_generator
 from server.jobs import ALLOWED_SUFFIXES, MAX_UPLOAD_BYTES, manager
-from server.paths import DEMO_SITE, ensure_runtime_env, rubberband_available, rubberband_path
+from server.paths import (
+    DEMO_SITE,
+    WEB_DIST,
+    ensure_runtime_env,
+    read_version,
+    rubberband_available,
+    rubberband_path,
+)
 
 ensure_runtime_env()
 
-app = FastAPI(title="DJtransGAN Mix Studio", version="0.1.0")
+app = FastAPI(title="DJtransGAN Mix Studio", version=read_version())
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -60,6 +69,7 @@ def health():
     rb = rubberband_available()
     return {
         "ok": bool(g.get("loaded")) and rb,
+        "version": read_version(),
         "model": g,
         "rubberband": {
             "available": rb,
@@ -182,3 +192,31 @@ def get_job_params(job_id: str):
     if not path.is_file():
         raise HTTPException(404, "params missing")
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _mount_frontend() -> None:
+    """Serve Vue production build when present (desktop / packaged mode)."""
+    ensure_runtime_env()
+    dist = WEB_DIST
+    if not dist.is_dir() or not (dist / "index.html").is_file():
+        return
+
+    assets = dist / "assets"
+    if assets.is_dir():
+        app.mount("/assets", StaticFiles(directory=str(assets)), name="assets")
+
+    @app.get("/")
+    async def spa_index():
+        return FileResponse(dist / "index.html")
+
+    @app.get("/{full_path:path}")
+    async def spa_fallback(full_path: str) -> Response:
+        if full_path.startswith("api/") or full_path.startswith("api"):
+            raise HTTPException(404, "not found")
+        candidate = dist / full_path
+        if candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(dist / "index.html")
+
+
+_mount_frontend()

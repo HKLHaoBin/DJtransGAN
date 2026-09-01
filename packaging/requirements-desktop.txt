@@ -1,0 +1,2 @@
+# Desktop packaging extras (install on top of requirements-inference.txt).
+pyinstaller>=6.3,<7

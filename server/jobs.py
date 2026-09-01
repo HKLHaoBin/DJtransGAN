@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Optional
 
 from server.engine import run_mix
-from server.paths import JOBS_DIR
+from server import paths as app_paths
 
 MAX_UPLOAD_BYTES = 80 * 1024 * 1024
 ALLOWED_SUFFIXES = {".wav", ".flac", ".ogg", ".mp3", ".m4a", ".aac"}
@@ -65,7 +65,7 @@ class JobManager:
         return self._hydrate_from_disk(job_id)
 
     def job_dir(self, job_id: str) -> Path:
-        return JOBS_DIR / job_id
+        return app_paths.JOBS_DIR / job_id
 
     def _hydrate_from_disk(self, job_id: str) -> Optional[Job]:
         """Rebuild a finished job from results/web-jobs/{id}/ after process restart."""
@@ -100,10 +100,10 @@ class JobManager:
 
     def list_done(self) -> list[dict]:
         """Finished mixes on disk, newest first."""
-        if not JOBS_DIR.is_dir():
+        if not app_paths.JOBS_DIR.is_dir():
             return []
         items: list[dict] = []
-        for child in JOBS_DIR.iterdir():
+        for child in app_paths.JOBS_DIR.iterdir():
             if not child.is_dir():
                 continue
             short = child / "short.wav"
