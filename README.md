@@ -1,59 +1,86 @@
-# DJtransGAN 研究工作区
+# DJtransGAN Mix Studio
 
-本地研究用，依赖与缓存都在本目录（`F:\编程\DJtransGAN`），不往 C 盘写 pip/torch 缓存。
+本地研究用工作区：在官方 DJtransGAN 之上加了 **FastAPI + Vue 混音工作台**，方便上传两首歌、设 cue、跑推理并试听。
 
-## 目录
+License: **MIT**
 
-| 目录 | 用途 |
+## 相关仓库
+
+本工作区在本地会并排放四个仓库（根目录 `.gitignore` 会忽略后三个，避免嵌套提交）：
+
+| 仓库 | 说明 |
 | --- | --- |
-| `code/` | [DJtransGAN](https://github.com/ChenPaulYu/DJtransGAN) 模型 / 训练 / 推理 |
-| `demo-site/` | 论文试听页 + `assets/audios` |
-| `dg-pipeline/` | 训练数据生成管线 |
-| `server/` | FastAPI：推理引擎 + 异步 jobs |
-| `web/` | Vue 3 + Vite Mix 工作台 |
-| `tools/rubberband/` | rubberband CLI（官方 Windows 包） |
+| **[HKLHaoBin/DJtransGAN](https://github.com/HKLHaoBin/DJtransGAN)**（本仓库） | Mix Studio 外壳：`server/` + `web/` + 启动脚本 |
+| **[HKLHaoBin/DJtransGAN-code](https://github.com/HKLHaoBin/DJtransGAN-code)** | 模型 / 训练 / 推理代码（fork 自官方实现，含本地推理补丁） |
+| **[HKLHaoBin/DJtransGAN-demo-site](https://github.com/HKLHaoBin/DJtransGAN-demo-site)** | ICASSP 2022 论文试听页与示例音频 |
+| **[HKLHaoBin/DJtransGAN-dg-pipeline](https://github.com/HKLHaoBin/DJtransGAN-dg-pipeline)** | 训练数据生成管线 |
+
+上游论文与官方仓库：
+
+- 论文：[arXiv:2110.06525](https://arxiv.org/abs/2110.06525)
+- 官方模型：[ChenPaulYu/DJtransGAN](https://github.com/ChenPaulYu/DJtransGAN)
+- 官方 demo：[ChenPaulYu/djtransgan-icassp2022](https://github.com/ChenPaulYu/djtransgan-icassp2022)
+- 官方管线：[ChenPaulYu/DJtransGAN-dg-pipeline](https://github.com/ChenPaulYu/DJtransGAN-dg-pipeline)
+
+## 本地目录结构
+
+```text
+DJtransGAN/                 ← 本仓库（Mix Studio）
+├── server/                 FastAPI 推理与 job 队列
+├── web/                    Vue 3 + Vite 前端
+├── code/                   → clone DJtransGAN-code
+├── demo-site/              → clone DJtransGAN-demo-site
+├── dg-pipeline/            → clone DJtransGAN-dg-pipeline
+├── tools/rubberband/       rubberband CLI（Windows）
+└── results/                推理输出（本地，不入库）
+```
+
+建议克隆方式：
+
+```bash
+git clone https://github.com/HKLHaoBin/DJtransGAN.git
+cd DJtransGAN
+git clone https://github.com/HKLHaoBin/DJtransGAN-code.git code
+git clone https://github.com/HKLHaoBin/DJtransGAN-demo-site.git demo-site
+git clone https://github.com/HKLHaoBin/DJtransGAN-dg-pipeline.git dg-pipeline
+```
 
 ## 环境
 
 ```powershell
-cd "F:\编程\DJtransGAN"
+cd DJtransGAN
 .\activate.ps1
 ```
 
-- `.venv/`、`.cache/pip`、`.cache/torch` 均在本目录
-- 临时解压：`F:\djtransgan-tmp`（避免中文路径下 sdist 解压失败）
-- `rubberband`：激活脚本会把 `tools\rubberband` 加入 PATH
+- 依赖见 `requirements-inference.txt`（不要直接装 `code/requirements.txt` 那份 2021 冻结列表）
+- `.venv/`、`.cache/` 建议放在本目录，避免污染系统盘
+- `rubberband`：激活脚本会把 `tools\rubberband` 加入 `PATH`
 
-依赖见 `requirements-inference.txt`（不要装 `code/requirements.txt` 那份 2021 整机冻结列表）。
-
-## Mix 工作台（推荐）
+## Mix 工作台
 
 两个终端：
 
 ```powershell
-# 终端 1 — API（模型常驻内存）
-cd "F:\编程\DJtransGAN"
+# 终端 1 — API
 .\start-api.ps1
 
 # 终端 2 — Vue
-cd "F:\编程\DJtransGAN"
 .\start-web.ps1
 ```
 
 - 前端：http://127.0.0.1:5173/
-- API：http://127.0.0.1:8010/ （文档 `/docs`，健康检查 `/api/health`）
-
-> 若本机 `8000` 被代理占用，默认改用 `8010`。Vite 已将 `/api` 代理到该端口。
+- API：http://127.0.0.1:8010/（文档 `/docs`，健康检查 `/api/health`）
 
 页面：
 
-1. **Mix** — 上传 Prev/Next、设 cue、跑混音、听 short/full、看 fader/EQ 曲线
-2. **Demo** — 论文 8 组对照试听
-3. **About** — 说明
+1. **Mix** — 上传 Prev/Next、设 cue、跑混音、听 short/full、看曲线  
+2. **Results** — 历史任务  
+3. **Demo** — 论文对照试听  
+4. **Settings / About**
 
-首次启动若缺少权重，会尝试经 gdown 下载到 `code/pretrained/`。
+首次启动若缺少权重，会尝试下载到 `code/pretrained/`。上传优先 **wav/flac**。同一时间只跑一个 job。
 
-上传优先 **wav/flac**；自测可用 `code/test/` 两首歌、默认 cue（prev=96 / next=30）。同一时间只跑一个 job，后续请求会排队。
+> 模型输出是研究原型级过渡（单声道 + 时频 masking），不是母带级立体声混音。
 
 ## CLI 推理
 
@@ -65,11 +92,11 @@ cd code
 python script/inference.py --download 1 --out_dir ../results/inference
 ```
 
-## 纯试听（不启 FastAPI）
+## 仅试听 Demo 页
 
 ```powershell
 cd demo-site
-& "F:\编程\DJtransGAN\.venv\Scripts\python.exe" -m http.server 8765
+python -m http.server 8765
 ```
 
-或打开 https://chenpaulyu.github.io/djtransgan-icassp2022/
+或打开上游在线 demo：https://chenpaulyu.github.io/djtransgan-icassp2022/
