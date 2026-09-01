@@ -89,19 +89,20 @@ jobs:
 
           # Fail fast if this tag already exists (except when the push event IS that tag).
           $tagName = "v$version"
-          git rev-parse $tagName 2>$null | Out-Null
-          if ($LASTEXITCODE -eq 0 -and -not ($env:EVENT_NAME -eq "push" -and $env:REF_NAME -eq $tagName)) {
+          $existing = @(git tag -l $tagName)
+          if ($existing.Count -gt 0 -and -not ($env:EVENT_NAME -eq "push" -and $env:REF_NAME -eq $tagName)) {
             throw "Tag $tagName already exists"
           }
 
-          Set-Content -Path VERSION -Value $version -NoNewline -Encoding utf8
+          [System.IO.File]::WriteAllText((Resolve-Path "VERSION").Path, $version)
           $pkgPath = "web/package.json"
           $pkgText = Get-Content $pkgPath -Raw -Encoding utf8
           $pkgText = [regex]::Replace($pkgText, '"version"\s*:\s*"[^"]*"', "`"version`": `"$version`"")
-          Set-Content -Path $pkgPath -Value $pkgText -Encoding utf8 -NoNewline
+          [System.IO.File]::WriteAllText((Resolve-Path $pkgPath).Path, $pkgText)
 
-          "VERSION=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          "TAG=v$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "VERSION=$version"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "TAG=$tagName"
+          Write-Host "Resolved version=$version tag=$tagName"
 
       - name: Clone model code and demo site
         shell: pwsh
