@@ -73,16 +73,16 @@
         <div class="row" style="flex-wrap: wrap; gap: 1rem 1.5rem">
           <label class="check-inline">
             <input v-model="draft.matchBpm" type="checkbox" />
-            匹配 BPM（整轨变速）
+            过渡段平滑速度匹配
           </label>
           <label class="check-inline">
             <input v-model="draft.alignCue" type="checkbox" />
-            对齐 cue 窗口
+            对齐 cue 窗口（共享时间映射）
           </label>
           <RouterLink class="muted" to="/settings">改默认值 →</RouterLink>
         </div>
         <p class="muted" style="margin: 0.5rem 0 0; font-size: 0.85rem">
-          曲速差大时请关掉「匹配 BPM」，否则 Next 会被拉到 Prev 的速度。
+          只处理 Next 的过渡素材，默认最多偏离原速 8%，并在过渡末端平滑回到原速；两个开关同开也只做一次时间变换。
         </p>
       </section>
 
@@ -102,9 +102,10 @@
           <i :style="{ width: progressPct + '%' }" />
         </div>
         <div class="row muted" style="margin-top: 0.5rem" v-if="job?.meta">
-          <span class="pill" v-if="job.meta.prev_bpm != null">Prev BPM {{ Number(job.meta.prev_bpm).toFixed(1) }}</span>
-          <span class="pill" v-if="job.meta.next_bpm != null">Next BPM {{ Number(job.meta.next_bpm).toFixed(1) }}</span>
-          <span class="pill" v-if="job.meta.match_bpm != null">BPM匹配 {{ job.meta.match_bpm ? '开' : '关' }}</span>
+          <span class="pill" v-if="job.meta.prev_local_bpm != null || job.meta.prev_bpm != null">Prev cue BPM {{ Number(job.meta.prev_local_bpm ?? job.meta.prev_bpm).toFixed(1) }}</span>
+          <span class="pill" v-if="job.meta.next_local_bpm != null || job.meta.next_bpm != null">Next cue BPM {{ Number(job.meta.next_local_bpm ?? job.meta.next_bpm).toFixed(1) }}</span>
+          <span class="pill" v-if="job.meta.match_bpm != null">过渡速度匹配 {{ job.meta.match_bpm ? '开' : '关' }}</span>
+          <span class="pill" v-if="job.meta.applied_start_rate != null">起始速率 ×{{ Number(job.meta.applied_start_rate).toFixed(3) }}</span>
           <span class="pill" v-if="job.meta.prev_cue != null">校正 Prev cue {{ Number(job.meta.prev_cue).toFixed(2) }}s</span>
           <span class="pill" v-if="job.meta.next_cue != null">校正 Next cue {{ Number(job.meta.next_cue).toFixed(2) }}s</span>
         </div>

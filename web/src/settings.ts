@@ -1,9 +1,9 @@
 export type PrevCueMode = 'absolute' | 'from_end'
 
 export interface StudioSettings {
-  /** Stretch Next so its BPM matches Prev (whole-track tempo). */
+  /** Smoothly match cue-local tempo only inside the Next transition window. */
   matchBpm: boolean
-  /** Stretch Next cue window to match Prev cue-window length. */
+  /** Align cue windows through the same single transition time map. */
   alignCue: boolean
   /** How Prev cue is specified on Mix page. */
   prevCueMode: PrevCueMode

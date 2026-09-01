@@ -43,11 +43,11 @@
       <section class="panel" v-if="selectedId">
         <h2 style="margin-top: 0">{{ selectedId }}</h2>
         <div class="row muted" style="margin-bottom: 0.75rem" v-if="selectedMeta">
-          <span class="pill" v-if="selectedMeta.prev_bpm != null">
-            Prev BPM {{ Number(selectedMeta.prev_bpm).toFixed(1) }}
+          <span class="pill" v-if="selectedMeta.prev_local_bpm != null || selectedMeta.prev_bpm != null">
+            Prev cue BPM {{ Number(selectedMeta.prev_local_bpm ?? selectedMeta.prev_bpm).toFixed(1) }}
           </span>
-          <span class="pill" v-if="selectedMeta.next_bpm != null">
-            Next BPM {{ Number(selectedMeta.next_bpm).toFixed(1) }}
+          <span class="pill" v-if="selectedMeta.next_local_bpm != null || selectedMeta.next_bpm != null">
+            Next cue BPM {{ Number(selectedMeta.next_local_bpm ?? selectedMeta.next_bpm).toFixed(1) }}
           </span>
           <span class="pill" v-if="selectedMeta.prev_cue != null">
             Prev cue {{ Number(selectedMeta.prev_cue).toFixed(2) }}s

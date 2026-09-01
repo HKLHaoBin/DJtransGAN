@@ -197,6 +197,7 @@ def run_mix(
     params_name: str = "params.json",
     match_bpm: bool = False,
     align_cue: bool = True,
+    max_tempo_rate_delta: Optional[float] = None,
 ) -> dict:
     """
     Run one mix. Writes short/full wav + params.json into out_dir.
@@ -207,6 +208,7 @@ def run_mix(
 
     from djtransgan.config import settings
     from djtransgan.process import preprocess, postprocess
+    from djtransgan.process.tempo import MAX_TEMPO_RATE_DELTA
     from djtransgan.utils import check_exist, get_filename, load_audio, out_audio, squeeze_dim
 
     out_dir = Path(out_dir)
@@ -217,6 +219,11 @@ def run_mix(
     progress(0, PIPELINE_TOTAL, "Loading audio ...")
     prev_audio = load_audio(str(prev_path))
     next_audio = load_audio(str(next_path))
+    effective_max_tempo_delta = (
+        MAX_TEMPO_RATE_DELTA
+        if max_tempo_rate_delta is None
+        else float(max_tempo_rate_delta)
+    )
 
     # preprocess reports steps 1-5
     with _lock:
@@ -228,6 +235,7 @@ def run_mix(
             on_progress=_map_preprocess_progress(progress),
             match_bpm=match_bpm,
             align_cue=align_cue,
+            max_tempo_rate_delta=effective_max_tempo_delta,
         )
 
         progress(6, PIPELINE_TOTAL, "Mixing with generator ...")
@@ -257,6 +265,7 @@ def run_mix(
         "next_cue_in": float(next_cue),
         "match_bpm": bool(match_bpm),
         "align_cue": bool(align_cue),
+        "max_tempo_rate_delta": effective_max_tempo_delta,
     }
     params_path.write_text(json.dumps(params, ensure_ascii=False, indent=2), encoding="utf-8")
 

@@ -12,15 +12,15 @@
       <label class="check">
         <input v-model="draft.matchBpm" type="checkbox" />
         <span>
-          默认匹配 BPM（整轨变速）
-          <small class="muted">把 Next 拉到 Prev 的速度；两曲 BPM 差大时 Next 会明显变慢/变快。</small>
+          默认启用过渡段平滑速度匹配
+          <small class="muted">依据双方 cue 附近节拍调整 Next 过渡素材，默认限幅 ±8%，过渡末端回到原速。</small>
         </span>
       </label>
       <label class="check">
         <input v-model="draft.alignCue" type="checkbox" />
         <span>
-          默认对齐 cue 窗口长度
-          <small class="muted">只拉伸过渡区中段，让两轨 cue 区间一样长；影响比整轨 BPM 匹配小。</small>
+          默认对齐 cue 窗口
+          <small class="muted">复用同一张过渡时间映射调整 cue 对齐，不会再触发第二次变速。</small>
         </span>
       </label>
     </section>
@@ -60,7 +60,7 @@
         <span class="status-ok" v-if="savedFlash">已保存</span>
       </div>
       <p class="muted" style="margin: 0.75rem 0 0">
-        说明：GAN 仍只在 cue 附近约 60 秒窗口内调 EQ/fader；关闭「匹配 BPM」后两轨保持原速进入混音。
+        说明：GAN 仍只在 cue 附近约 60 秒窗口内调 EQ/fader；两个速度相关开关都关闭时保持原速路径。
       </p>
     </section>
   </div>

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import threading
 import traceback
 import uuid
@@ -146,6 +147,7 @@ class JobManager:
         *,
         match_bpm: bool = False,
         align_cue: bool = True,
+        max_tempo_rate_delta: Optional[float] = None,
     ) -> Job:
         if len(prev_bytes) > MAX_UPLOAD_BYTES or len(next_bytes) > MAX_UPLOAD_BYTES:
             raise ValueError(f"file too large (max {MAX_UPLOAD_BYTES // (1024*1024)} MB)")
@@ -154,6 +156,14 @@ class JobManager:
         next_suf = Path(next_name).suffix.lower() or ".wav"
         if prev_suf not in ALLOWED_SUFFIXES or next_suf not in ALLOWED_SUFFIXES:
             raise ValueError(f"unsupported audio type (allowed: {sorted(ALLOWED_SUFFIXES)})")
+        if max_tempo_rate_delta is not None:
+            max_tempo_rate_delta = float(max_tempo_rate_delta)
+            if (
+                not math.isfinite(max_tempo_rate_delta)
+                or max_tempo_rate_delta < 0.0
+                or max_tempo_rate_delta >= 1.0
+            ):
+                raise ValueError("max_tempo_rate_delta must be finite and in [0, 1)")
 
         job_id = uuid.uuid4().hex[:12]
         jdir = self.job_dir(job_id)
@@ -171,6 +181,7 @@ class JobManager:
             "next_cue": next_cue,
             "match_bpm": bool(match_bpm),
             "align_cue": bool(align_cue),
+            "max_tempo_rate_delta": max_tempo_rate_delta,
         }
         with self._lock:
             self._jobs[job_id] = job
@@ -221,6 +232,7 @@ class JobManager:
             on_progress=on_progress,
             match_bpm=bool(paths.get("match_bpm", False)),
             align_cue=bool(paths.get("align_cue", True)),
+            max_tempo_rate_delta=paths.get("max_tempo_rate_delta"),
         )
         job.created_paths.update(result)
         job.meta = result.get("meta") or {}

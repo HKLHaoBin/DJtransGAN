@@ -69,7 +69,7 @@ export async function createJob(
   next: File,
   prevCue: number,
   nextCue: number,
-  opts?: { matchBpm?: boolean; alignCue?: boolean },
+  opts?: { matchBpm?: boolean; alignCue?: boolean; maxTempoRateDelta?: number },
 ): Promise<Job> {
   const body = new FormData()
   body.append('prev', prev)
@@ -78,6 +78,9 @@ export async function createJob(
   body.append('next_cue', String(nextCue))
   body.append('match_bpm', opts?.matchBpm ? 'true' : 'false')
   body.append('align_cue', opts?.alignCue === false ? 'false' : 'true')
+  if (opts?.maxTempoRateDelta != null) {
+    body.append('max_tempo_rate_delta', String(opts.maxTempoRateDelta))
+  }
   return parseJson(await fetch('/api/jobs', { method: 'POST', body }))
 }
 

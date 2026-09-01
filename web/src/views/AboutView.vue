@@ -7,8 +7,8 @@
     </p>
     <p class="muted">
       过渡分析窗口约 <code>N_TIME = 60</code> 秒（见
-      <code>code/djtransgan/config/settings.py</code>）。整轨 full 输出是在 short 过渡段前后拼接
-      原曲剩余部分。
+      <code>code/djtransgan/config/settings.py</code>）。速度匹配只作用于 Next 的过渡素材，末端回到原速；
+      full 输出随后从原始速度的 Next 继续拼接。
     </p>
     <p class="muted">
       论文：Automatic DJ Transitions with Differentiable Audio Effects and Generative Adversarial

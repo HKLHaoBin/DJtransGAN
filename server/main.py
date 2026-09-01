@@ -110,6 +110,7 @@ async def create_job(
     next_cue: float = Form(30.0),
     match_bpm: bool = Form(False),
     align_cue: bool = Form(True),
+    max_tempo_rate_delta: Optional[float] = Form(None),
 ):
     prev_bytes = await prev.read()
     next_bytes = await next.read()
@@ -123,6 +124,7 @@ async def create_job(
             float(next_cue),
             match_bpm=bool(match_bpm),
             align_cue=bool(align_cue),
+            max_tempo_rate_delta=max_tempo_rate_delta,
         )
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
