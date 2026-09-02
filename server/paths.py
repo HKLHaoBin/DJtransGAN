@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import server.compat  # noqa: F401  # madmom Py3.10 shim before djtransgan imports
+
 import os
 import shutil
 import sys

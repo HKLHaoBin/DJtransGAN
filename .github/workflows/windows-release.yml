@@ -148,8 +148,11 @@ jobs:
       - name: Verify inference imports
         shell: pwsh
         run: |
-          $env:PYTHONPATH = (Resolve-Path code).Path
+          $root = (Get-Location).Path
+          $code = (Resolve-Path code).Path
+          $env:PYTHONPATH = "$code;$root"
           python -c @"
+          import server.compat
           import IPython.display
           import madmom
           import torchlibrosa
