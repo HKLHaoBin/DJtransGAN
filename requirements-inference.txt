@@ -19,7 +19,8 @@ openunmix>=1.2.0
 asteroid-filterbanks>=0.4.0
 auraloss>=0.2.0
 IPython>=7.0
-# madmom: install separately with --no-build-isolation after Cython (see README)
+# madmom: beat tracking for preprocess; needs Cython + --no-build-isolation on Windows
+#   pip install Cython && pip install madmom --no-build-isolation
 
 # Mix Studio API
 fastapi>=0.110

@@ -30,6 +30,43 @@ _load_error: Optional[str] = None
 PIPELINE_TOTAL = 7
 
 
+def _debug_log(hypothesis_id: str, location: str, message: str, data: dict | None = None) -> None:
+    # #region agent log
+    try:
+        import json as _json
+        import sys as _sys
+        import time as _time
+        from pathlib import Path as _Path
+
+        payload = {
+            "sessionId": "3353fe",
+            "runId": "pre-fix",
+            "hypothesisId": hypothesis_id,
+            "location": location,
+            "message": message,
+            "data": data or {},
+            "timestamp": int(_time.time() * 1000),
+        }
+        log_path = _Path(__file__).resolve().parent.parent / "debug-3353fe.log"
+        with log_path.open("a", encoding="utf-8") as fh:
+            fh.write(_json.dumps(payload, ensure_ascii=False) + "\n")
+        fetch = getattr(_sys.modules.get("urllib.request", None), "urlopen", None)
+        if fetch is None:
+            import urllib.request
+
+            fetch = urllib.request.urlopen
+        req = urllib.request.Request(
+            "http://127.0.0.1:7353/ingest/2ea5acc4-4765-402a-a8f6-0dd19c06a8c7",
+            data=_json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json", "X-Debug-Session-Id": "3353fe"},
+            method="POST",
+        )
+        fetch(req, timeout=1)
+    except Exception:
+        pass
+    # #endregion
+
+
 def _noop_progress(step: int, total: int, message: str) -> None:
     pass
 
@@ -83,9 +120,28 @@ def load_generator(weights_path: Optional[Path] = None, download: bool = True) -
             return _generator
 
         ensure_runtime_env()
-        from djtransgan.config import settings
-        from djtransgan.model import get_generator
-        from djtransgan.utils import load_pt
+        # #region agent log
+        _debug_log(
+            "A",
+            "engine.load_generator:import",
+            "importing djtransgan modules",
+            {"frozen": bool(getattr(__import__("sys"), "frozen", False)), "code_dir": str(CODE_DIR)},
+        )
+        # #endregion
+        try:
+            from djtransgan.config import settings
+            from djtransgan.model import get_generator
+            from djtransgan.utils import load_pt
+        except ModuleNotFoundError as exc:
+            # #region agent log
+            _debug_log(
+                "A",
+                "engine.load_generator:import_error",
+                "djtransgan import failed",
+                {"missing_module": exc.name, "error": str(exc)},
+            )
+            # #endregion
+            raise
 
         torch.manual_seed(settings.RANDOM_SEED)
 
@@ -220,10 +276,24 @@ def run_mix(
     ensure_runtime_env()
     progress = on_progress or _noop_progress
 
-    from djtransgan.config import settings
-    from djtransgan.process import preprocess, postprocess
-    from djtransgan.process.tempo import MAX_TEMPO_RATE_DELTA
-    from djtransgan.utils import check_exist, get_filename, load_audio, out_audio, squeeze_dim
+    # #region agent log
+    _debug_log("B", "engine.run_mix:import", "importing djtransgan.process", {"frozen": bool(getattr(__import__("sys"), "frozen", False))})
+    # #endregion
+    try:
+        from djtransgan.config import settings
+        from djtransgan.process import preprocess, postprocess
+        from djtransgan.process.tempo import MAX_TEMPO_RATE_DELTA
+        from djtransgan.utils import check_exist, get_filename, load_audio, out_audio, squeeze_dim
+    except ModuleNotFoundError as exc:
+        # #region agent log
+        _debug_log(
+            "B",
+            "engine.run_mix:import_error",
+            "djtransgan.process import failed",
+            {"missing_module": exc.name, "error": str(exc)},
+        )
+        # #endregion
+        raise
 
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)

@@ -142,6 +142,23 @@ jobs:
           python -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
           python -m pip install -r requirements-inference.txt
           python -m pip install -r packaging/requirements-desktop.txt
+          python -m pip install -r packaging/requirements-build.txt
+          python -m pip install madmom --no-build-isolation
+
+      - name: Verify inference imports
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = (Resolve-Path code).Path
+          python -c @"
+          import IPython.display
+          import madmom
+          import torchlibrosa
+          import gdown
+          import matplotlib.pyplot
+          from djtransgan.process import preprocess
+          from djtransgan.model import get_generator
+          print('inference imports ok')
+          "@
 
       - name: PyInstaller build
         shell: pwsh

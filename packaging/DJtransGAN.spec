@@ -46,6 +46,14 @@ hiddenimports: list = [
     "multipart",
     "sklearn",
     "sklearn.utils._cython_blas",
+    "IPython",
+    "IPython.display",
+    "madmom",
+    "madmom.features.downbeats",
+    "torchlibrosa",
+    "gdown",
+    "matplotlib",
+    "matplotlib.pyplot",
 ]
 
 for pkg in (
@@ -56,17 +64,22 @@ for pkg in (
     "nnAudio",
     "openunmix",
     "torchaudio",
+    "torchlibrosa",
     "sklearn",
     "pyrubberband",
     "pyloudnorm",
     "asteroid_filterbanks",
+    "IPython",
+    "madmom",
+    "gdown",
+    "matplotlib",
 ):
     try:
         hiddenimports += collect_submodules(pkg)
     except Exception:
         pass
 
-for pkg in ("librosa", "nnAudio", "openunmix", "sklearn"):
+for pkg in ("librosa", "nnAudio", "openunmix", "sklearn", "madmom", "matplotlib"):
     try:
         pkg_datas, pkg_bins, pkg_hidden = collect_all(pkg)
         datas += pkg_datas
@@ -89,7 +102,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=["IPython", "jupyter", "notebook", "matplotlib.tests", "tkinter"],
+    excludes=["jupyter", "notebook", "matplotlib.tests", "tkinter"],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,

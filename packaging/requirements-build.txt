@@ -1,0 +1,3 @@
+# Extra deps for local/CI PyInstaller builds (after requirements-inference.txt).
+Cython>=0.29
+madmom>=0.16
