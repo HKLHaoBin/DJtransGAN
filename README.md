@@ -125,7 +125,7 @@ cd web; npm ci; npm run build; cd ..
 pip install -r requirements-inference.txt
 pip install -r packaging/requirements-desktop.txt
 pip install -r packaging/requirements-build.txt
-pip install madmom --no-build-isolation
+pip install "numpy<1.26" madmom --no-build-isolation
 # 建议使用 CPU torch wheel
 pyinstaller packaging/DJtransGAN.spec --noconfirm
 # 安装 Inno Setup 后：

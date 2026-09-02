@@ -143,7 +143,7 @@ jobs:
           python -m pip install -r requirements-inference.txt
           python -m pip install -r packaging/requirements-desktop.txt
           python -m pip install -r packaging/requirements-build.txt
-          python -m pip install madmom --no-build-isolation
+          python -m pip install "numpy<1.26" madmom --no-build-isolation
 
       - name: Verify inference imports
         shell: pwsh

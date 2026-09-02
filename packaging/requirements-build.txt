@@ -1,3 +1,2 @@
-# Extra deps for local/CI PyInstaller builds (after requirements-inference.txt).
+# Build-only deps for PyInstaller (install madmom separately after Cython).
 Cython>=0.29
-madmom>=0.16
